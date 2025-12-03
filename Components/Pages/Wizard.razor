@@ -3,6 +3,7 @@
 @using KairosInstaller.Models
 @inject IFormSchemaService SchemaService
 @inject ILogger<Wizard> Logger
+@inject IConfiguration Configuration
 @rendermode InteractiveServer
 
 <PageTitle>@SchemaService.Schema.Title</PageTitle>
@@ -27,7 +28,7 @@
                             </div>
                             @if (index < SchemaService.Schema.Steps.Count - 1)
                             {
-                                <div class="@GetStepLineClass(index) h-1 flex-1 mx-4 mt-[-20px]"></div>
+                                <div class="@GetStepLineClass(index) h-1 flex-1 mx-4" style="margin-top: -20px;"></div>
                             }
                         </div>
                     }
@@ -247,7 +248,8 @@
 
         try
         {
-            var outputDir = Path.Combine(Directory.GetCurrentDirectory(), "output");
+            var outputDirName = Configuration.GetValue<string>("Installer:OutputDirectory") ?? "output";
+            var outputDir = Path.Combine(Directory.GetCurrentDirectory(), outputDirName);
             var timestamp = DateTime.Now.ToString("yyyyMMdd_HHmmss");
             var outputPath = Path.Combine(outputDir, $"configuration_{timestamp}.json");
             

@@ -27,7 +27,28 @@ public class FormSchemaService : IFormSchemaService
             if (!File.Exists(schemaPath))
             {
                 _logger.LogError("Schema file not found at {Path}", schemaPath);
-                _schema = new FormSchema { Title = "Error: Schema not found" };
+                _schema = new FormSchema 
+                { 
+                    Title = "Error: Schema file not found",
+                    Steps = new List<FormStep>
+                    {
+                        new FormStep
+                        {
+                            Id = "error",
+                            Title = "Configuration Error",
+                            Fields = new List<FormField>
+                            {
+                                new FormField
+                                {
+                                    Name = "error_message",
+                                    Label = "Error",
+                                    Type = "text",
+                                    Placeholder = $"Schema file not found at: {schemaPath}"
+                                }
+                            }
+                        }
+                    }
+                };
                 return;
             }
 
@@ -37,16 +58,24 @@ public class FormSchemaService : IFormSchemaService
                 PropertyNameCaseInsensitive = true
             });
 
-            if (_schema == null)
+            if (_schema == null || _schema.Steps == null || _schema.Steps.Count == 0)
             {
-                _logger.LogError("Failed to deserialize schema");
-                _schema = new FormSchema { Title = "Error: Invalid schema" };
+                _logger.LogError("Failed to deserialize schema or schema is empty");
+                _schema = new FormSchema 
+                { 
+                    Title = "Error: Invalid schema format",
+                    Steps = new List<FormStep>()
+                };
             }
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error loading schema");
-            _schema = new FormSchema { Title = "Error loading schema" };
+            _schema = new FormSchema 
+            { 
+                Title = "Error loading schema",
+                Steps = new List<FormStep>()
+            };
         }
     }
 
