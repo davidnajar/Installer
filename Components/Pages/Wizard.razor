@@ -1,0 +1,276 @@
+@page "/"
+@using KairosInstaller.Services
+@using KairosInstaller.Models
+@inject IFormSchemaService SchemaService
+@inject ILogger<Wizard> Logger
+@rendermode InteractiveServer
+
+<PageTitle>@SchemaService.Schema.Title</PageTitle>
+
+<div class="min-h-screen bg-gray-100 py-8 px-4">
+    <div class="max-w-4xl mx-auto">
+        <!-- Header -->
+        <div class="bg-white rounded-lg shadow-lg p-6 mb-6">
+            <h1 class="text-3xl font-bold text-gray-800 mb-2">@SchemaService.Schema.Title</h1>
+            
+            <!-- Progress Bar -->
+            <div class="mt-6">
+                <div class="flex items-center justify-between mb-2">
+                    @foreach (var (step, index) in SchemaService.Schema.Steps.Select((s, i) => (s, i)))
+                    {
+                        <div class="flex items-center @(index < SchemaService.Schema.Steps.Count - 1 ? "flex-1" : "")">
+                            <div class="flex flex-col items-center">
+                                <div class="@GetStepCircleClass(index) w-10 h-10 rounded-full flex items-center justify-center font-semibold mb-2">
+                                    @(index + 1)
+                                </div>
+                                <span class="@GetStepTextClass(index) text-sm text-center">@step.Title</span>
+                            </div>
+                            @if (index < SchemaService.Schema.Steps.Count - 1)
+                            {
+                                <div class="@GetStepLineClass(index) h-1 flex-1 mx-4 mt-[-20px]"></div>
+                            }
+                        </div>
+                    }
+                </div>
+            </div>
+        </div>
+
+        <!-- Form Content -->
+        <div class="bg-white rounded-lg shadow-lg p-8">
+            @if (currentStepIndex < SchemaService.Schema.Steps.Count)
+            {
+                var currentStep = SchemaService.Schema.Steps[currentStepIndex];
+                
+                <h2 class="text-2xl font-semibold text-gray-800 mb-6">@currentStep.Title</h2>
+
+                <div class="space-y-6">
+                    @foreach (var field in currentStep.Fields)
+                    {
+                        <div class="form-group">
+                            <label class="block text-sm font-medium text-gray-700 mb-2">
+                                @field.Label
+                            </label>
+
+                            @if (field.Type == "text" || field.Type == "password" || field.Type == "number")
+                            {
+                                <input
+                                    type="@field.Type"
+                                    class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                    placeholder="@field.Placeholder"
+                                    value="@GetFieldValue(field.Name)"
+                                    @oninput="@(e => UpdateFieldValue(field.Name, e.Value?.ToString() ?? ""))" />
+                            }
+                            else if (field.Type == "checkbox")
+                            {
+                                <div class="flex items-center">
+                                    <input
+                                        type="checkbox"
+                                        class="w-5 h-5 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                                        checked="@GetCheckboxValue(field.Name)"
+                                        @onchange="@(e => UpdateFieldValue(field.Name, e.Value))" />
+                                    <span class="ml-2 text-sm text-gray-600">@field.Placeholder</span>
+                                </div>
+                            }
+                            else if (field.Type == "select" && field.Options != null)
+                            {
+                                <select
+                                    class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                    value="@GetFieldValue(field.Name)"
+                                    @onchange="@(e => UpdateFieldValue(field.Name, e.Value?.ToString() ?? ""))">
+                                    <option value="">-- Seleccionar --</option>
+                                    @foreach (var option in field.Options)
+                                    {
+                                        <option value="@option.Value">@option.Label</option>
+                                    }
+                                </select>
+                            }
+                        </div>
+                    }
+                </div>
+            }
+            else
+            {
+                <!-- Completion Screen -->
+                <div class="text-center py-12">
+                    @if (isSaving)
+                    {
+                        <div class="mb-4">
+                            <svg class="animate-spin h-12 w-12 mx-auto text-blue-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                            </svg>
+                        </div>
+                        <h3 class="text-xl font-semibold text-gray-800 mb-2">Guardando configuración...</h3>
+                    }
+                    else if (saveError != null)
+                    {
+                        <div class="text-red-600 mb-4">
+                            <svg class="h-12 w-12 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                            </svg>
+                            <h3 class="text-xl font-semibold mb-2">Error al guardar</h3>
+                            <p class="text-gray-600">@saveError</p>
+                        </div>
+                    }
+                    else if (configPath != null)
+                    {
+                        <div class="text-green-600 mb-4">
+                            <svg class="h-12 w-12 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                            </svg>
+                            <h3 class="text-xl font-semibold mb-2">¡Configuración completada!</h3>
+                            <p class="text-gray-600 mb-4">La configuración se ha guardado correctamente en:</p>
+                            <code class="bg-gray-100 px-4 py-2 rounded text-sm">@configPath</code>
+                        </div>
+                    }
+                </div>
+            }
+
+            <!-- Navigation Buttons -->
+            <div class="flex justify-between mt-8 pt-6 border-t border-gray-200">
+                <button
+                    class="px-6 py-2 bg-gray-300 text-gray-700 rounded-lg hover:bg-gray-400 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                    @onclick="GoBack"
+                    disabled="@(currentStepIndex == 0 || isSaving)">
+                    ← Atrás
+                </button>
+
+                @if (currentStepIndex < SchemaService.Schema.Steps.Count)
+                {
+                    <button
+                        class="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                        @onclick="GoNext">
+                        @(currentStepIndex == SchemaService.Schema.Steps.Count - 1 ? "Finalizar" : "Siguiente →")
+                    </button>
+                }
+                else if (configPath != null)
+                {
+                    <button
+                        class="px-6 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
+                        @onclick="Reset">
+                        Reiniciar
+                    </button>
+                }
+            </div>
+        </div>
+    </div>
+</div>
+
+@code {
+    private int currentStepIndex = 0;
+    private Dictionary<string, object> formData = new();
+    private bool isSaving = false;
+    private string? saveError = null;
+    private string? configPath = null;
+
+    private string GetStepCircleClass(int stepIndex)
+    {
+        if (stepIndex < currentStepIndex)
+            return "bg-green-500 text-white";
+        if (stepIndex == currentStepIndex)
+            return "bg-blue-600 text-white";
+        return "bg-gray-300 text-gray-600";
+    }
+
+    private string GetStepTextClass(int stepIndex)
+    {
+        if (stepIndex <= currentStepIndex)
+            return "text-gray-800 font-medium";
+        return "text-gray-500";
+    }
+
+    private string GetStepLineClass(int stepIndex)
+    {
+        if (stepIndex < currentStepIndex)
+            return "bg-green-500";
+        return "bg-gray-300";
+    }
+
+    private string GetFieldValue(string fieldName)
+    {
+        if (formData.TryGetValue(fieldName, out var value))
+        {
+            return value?.ToString() ?? "";
+        }
+        return "";
+    }
+
+    private bool GetCheckboxValue(string fieldName)
+    {
+        if (formData.TryGetValue(fieldName, out var value))
+        {
+            if (value is bool boolValue)
+                return boolValue;
+        }
+        return false;
+    }
+
+    private void UpdateFieldValue(string fieldName, object? value)
+    {
+        if (value is bool boolValue)
+        {
+            formData[fieldName] = boolValue;
+        }
+        else
+        {
+            formData[fieldName] = value?.ToString() ?? "";
+        }
+    }
+
+    private void GoBack()
+    {
+        if (currentStepIndex > 0)
+        {
+            currentStepIndex--;
+        }
+    }
+
+    private async Task GoNext()
+    {
+        if (currentStepIndex < SchemaService.Schema.Steps.Count - 1)
+        {
+            currentStepIndex++;
+        }
+        else if (currentStepIndex == SchemaService.Schema.Steps.Count - 1)
+        {
+            // Move to completion screen
+            currentStepIndex++;
+            await SaveConfiguration();
+        }
+    }
+
+    private async Task SaveConfiguration()
+    {
+        isSaving = true;
+        saveError = null;
+        configPath = null;
+
+        try
+        {
+            var outputDir = Path.Combine(Directory.GetCurrentDirectory(), "output");
+            var timestamp = DateTime.Now.ToString("yyyyMMdd_HHmmss");
+            var outputPath = Path.Combine(outputDir, $"configuration_{timestamp}.json");
+            
+            await SchemaService.SaveResultAsync(formData, outputPath);
+            configPath = outputPath;
+            Logger.LogInformation("Configuration saved successfully to {Path}", outputPath);
+        }
+        catch (Exception ex)
+        {
+            saveError = ex.Message;
+            Logger.LogError(ex, "Error saving configuration");
+        }
+        finally
+        {
+            isSaving = false;
+        }
+    }
+
+    private void Reset()
+    {
+        currentStepIndex = 0;
+        formData.Clear();
+        saveError = null;
+        configPath = null;
+    }
+}
