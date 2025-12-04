@@ -1,0 +1,91 @@
+{
+  "title": "Configuración del nodo Kairos",
+  "steps": [
+    {
+      "id": "network",
+      "title": "Red",
+      "fields": [
+        {
+          "name": "ip",
+          "label": "IP",
+          "type": "text",
+          "placeholder": "192.168.1.10"
+        },
+        {
+          "name": "mask",
+          "label": "Máscara",
+          "type": "text",
+          "placeholder": "255.255.255.0"
+        },
+        {
+          "name": "gateway",
+          "label": "Puerta de enlace",
+          "type": "text",
+          "placeholder": "192.168.1.1"
+        },
+        {
+          "name": "dns",
+          "label": "DNS",
+          "type": "text",
+          "placeholder": "8.8.8.8"
+        }
+      ]
+    },
+    {
+      "id": "features",
+      "title": "Características",
+      "fields": [
+        {
+          "name": "hostname",
+          "label": "Hostname",
+          "type": "text",
+          "placeholder": "nodo-01"
+        },
+        {
+          "name": "enable_ssh",
+          "label": "Habilitar SSH",
+          "type": "checkbox"
+        },
+        {
+          "name": "ssh_port",
+          "label": "Puerto SSH",
+          "type": "number",
+          "placeholder": "22"
+        },
+        {
+          "name": "environment",
+          "label": "Entorno",
+          "type": "select",
+          "options": [
+            { "value": "development", "label": "Desarrollo" },
+            { "value": "staging", "label": "Staging" },
+            { "value": "production", "label": "Producción" }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "security",
+      "title": "Seguridad",
+      "fields": [
+        {
+          "name": "admin_password",
+          "label": "Contraseña de administrador",
+          "type": "password",
+          "placeholder": "Ingrese contraseña segura"
+        },
+        {
+          "name": "confirm_password",
+          "label": "Confirmar contraseña",
+          "type": "password",
+          "placeholder": "Confirme la contraseña"
+        },
+        {
+          "name": "enable_firewall",
+          "label": "Habilitar firewall",
+          "type": "checkbox"
+        }
+      ]
+    }
+  ]
+}
